@@ -1,10 +1,10 @@
 # Nim-async-requests-example
 
-Example in Nim that focuses on concurrent / parallel async requests.
+Example in Nim that focuses on concurrent async requests.
 
 Supplementary information:
 
-- The geographical location from which the requests were sent was Germany
+- The requests were sent from Germany
 - Response errors do not increase the request time. On the contrary, they are handled immediately. Nevertheless, the response quota when using Nim should be improved.
 
 ```

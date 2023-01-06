@@ -5,7 +5,7 @@ let urls = newHttpClient().getContent("https://gist.githubusercontent.com/tobeal
 var durations: seq[float]
 var errorNum = 0
 
-proc getUrl(client: AsyncHttpClient, url: string): Future[string] {.async.} =
+proc getHttpResp(client: AsyncHttpClient, url: string): Future[string] {.async.} =
 	try:
 		result = await client.getContent(url)
 		echo &"{url} - response length: {len(result)}"
@@ -20,7 +20,7 @@ proc requestUrls(urls: seq[string]) {.async.} =
 	var futures: seq[Future[string]]
 	for url in urls:
 		var client = newAsyncHttpClient()
-		futures.add client.getUrl(&"http://www.{url}")
+		futures.add client.getHttpResp(&"http://www.{url}")
 	for i in 0..urls.len-1:
 		discard await futures[i]
 
