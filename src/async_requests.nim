@@ -1,7 +1,9 @@
 #? replace(sub = "\t", by = "  ")
 import asyncdispatch, httpclient, strformat, times, strutils
 
-let urls = newHttpClient().getContent("https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/31524a7aac392402e354bced9307debd5315f0e8/100-popular-urls.txt").splitLines()[0..99]
+let urls = newHttpClient().getContent(
+	"https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/31524a7aac392402e354bced9307debd5315f0e8/100-popular-urls.txt"
+).splitLines()[0..99]
 var durations: seq[float]
 var errorNum = 0
 
