@@ -2,7 +2,8 @@
 import asyncdispatch, httpclient, strformat, times, strutils, tables, sequtils
 
 const
-	urlSource = "https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/31524a7aac392402e354bced9307debd5315f0e8/100-popular-urls.txt"
+	url_source = "https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/31524a7aac392402e354bced9307debd5315f0e8/100-popular-urls.txt"
+	seperator = "-------------------------------------------------------------------------------"
 
 type 
 	ResultStatus = enum success, error, timeout, pending
@@ -28,7 +29,7 @@ proc prep_urls(): seq[string] =
 			urls.add(&"google.com/search?q={i}")
 		return urls
 	try:
-		var urls = newHttpClient().getContent(urlSource).splitLines.deduplicate()
+		var urls = newHttpClient().getContent(url_source).splitLines.deduplicate()
 		if urls.len > 100:
 			urls.setLen(100)
 		return urls
@@ -113,28 +114,23 @@ proc main() =
 
 		let output = &"{i}: Time: {stats.time:.2f}s. Sent: {stats.successes + stats.errors + stats.timeouts}. Successful: {stats.successes}. Errors: {stats.errors}. Timeouts: {stats.timeouts}. Transferred {stats.transferred:.2f} MB ({stats.transferred/stats.time:.2f} MB/s)."
 		outputs.add(output)
-
+		
 		if verbose:
-			echo &"""
--------------------------------------------------------------------------------
-{output}
-"""
+			echo &"{seperator}\n{output}\n"
 
 	if outputs.len <= 1 and verbose:
 		return
 
-	echo """
--------------------------------------------------------------------------------"""
+	echo &"{seperator}"
 
 	for output in outputs:
 		echo &"{output}"
 
 	summary.transferred = summary.transferred/(1024 * 1024)
 
-	echo &"""
--------------------------------------------------------------------------------
+	echo &"""{seperator}
 Runs: {iterations}. Average Time: {summary.time / float(outputs.len):.2f}s. Total Errors: {summary.errors}. Total Timeouts: {summary.timeouts}. Transferred: {summary.transferred:.2f} MB ({summary.transferred/summary.time:.2f} MB/s).
--------------------------------------------------------------------------------
+{seperator}
 """
 
 
