@@ -8,26 +8,29 @@ Supplementary information:
 - Response errors do not increase the request time. On the contrary, they are handled immediately. Nevertheless, the response quota when using Nim should be improved.
 
 ```
-1: 14.87s
-2: 9.22s
-3: 8.32s
-4: 9.56s
-5: 13.71s
-6: 8.30s
-7: 7.99s
-8: 8.87s
-9: 8.99s
-10: 9.94s
-Iterations: 10. Total errors: 94.
-Average time to request 100 websites: 9.98s.
+-------------------------------------------------------------------------------
+1: Time: 11.62s. Sent: 99. Successful: 86. Errors: 11. Timeouts: 2. Transferred 25.86 MB (2.23 MB/s).
+2: Time: 8.15s. Sent: 99. Successful: 87. Errors: 11. Timeouts: 1. Transferred 26.61 MB (3.27 MB/s).
+3: Time: 7.42s. Sent: 99. Successful: 88. Errors: 10. Timeouts: 1. Transferred 27.18 MB (3.66 MB/s).
+4: Time: 7.28s. Sent: 99. Successful: 88. Errors: 10. Timeouts: 1. Transferred 26.34 MB (3.62 MB/s).
+5: Time: 10.59s. Sent: 99. Successful: 87. Errors: 11. Timeouts: 1. Transferred 26.63 MB (2.51 MB/s).
+6: Time: 12.19s. Sent: 99. Successful: 86. Errors: 12. Timeouts: 1. Transferred 25.37 MB (2.08 MB/s).
+7: Time: 12.82s. Sent: 99. Successful: 88. Errors: 10. Timeouts: 1. Transferred 27.01 MB (2.11 MB/s).
+8: Time: 8.64s. Sent: 99. Successful: 88. Errors: 10. Timeouts: 1. Transferred 27.02 MB (3.13 MB/s).
+9: Time: 12.86s. Sent: 99. Successful: 87. Errors: 10. Timeouts: 2. Transferred 27.02 MB (2.10 MB/s).
+10: Time: 18.95s. Sent: 99. Successful: 87. Errors: 10. Timeouts: 2. Transferred 26.92 MB (1.42 MB/s).
+-------------------------------------------------------------------------------
+Runs: 10. Average Time: 11.05s. Total Errors: 105. Total Timeouts: 13. Transferred: 265.96 MB (2.41 MB/s).
+-------------------------------------------------------------------------------
 ```
 
-Request only `google.com/search?q=%s` (where the search queries are the numbers from 1 to 100)<br>
+---
+
+**Single source requests**: In this example `google.com/search?q=<0..<100>`<br>
 When using this nim example it may result in a `Too Many Requests` error if this amount of Google searches are performed repeatedly.
 
 ```
-Iterations: 1. Total errors: 0.
-Time to request 100 google searches: 3.75s.
+Time: 2.90s. Sent: 100. Successful: 100. Errors: 0. Timeouts: 0. Transferred 10.85 MB (3.74 MB/s).
 ```
 
 ---
@@ -36,34 +39,4 @@ If you have thoughts on how to improve performance, please feel free to share th
 
 ## Equivalents in other languages
 
-<details>
-<summary><b>Python</b> - <code>Average time to request 100 websites: 7.92s.</code></summary>
-
-<br>
-
-Repository: https://github.com/tobealive/python-async-requests-example
-
-```
-1: 6.04s
-2: 6.87s
-3: 6.82s
-4: 6.38s
-5: 10.75s
-6: 6.41s
-7: 6.02s
-8: 11.53s
-9: 11.07s
-10: 7.35s
-
-Iterations: 10. Total errors: 10.
-Average time to request 100 websites: 7.92s.
-```
-
-Request only `google.com/search?q=%s` (where the search queries are the numbers from 1 to 100)
-
-```
-Iterations: 1. Total errors: 0.
-Time to request 100 google searches: 1.38s.
-```
-
-</details>
+- Python: https://github.com/tobealive/python-async-requests-example
