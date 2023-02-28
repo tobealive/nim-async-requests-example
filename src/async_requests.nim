@@ -1,24 +1,23 @@
 #? replace(sub = "\t", by = "  ")
-import asyncdispatch, httpclient, strformat, times, strutils, tables, sequtils
+import asyncdispatch, httpclient, strformat, times, strutils, sequtils
 
 const
-	url_source = "https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/31524a7aac392402e354bced9307debd5315f0e8/100-popular-urls.txt"
-	seperator = "-------------------------------------------------------------------------------"
+	url_source = "https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/3db61fe72e1ce6854faa025298bf4cdfd2b2f250/100-popular-urls.txt"
+	seperator = "-".repeat(80)
 
 type 
 	ResultStatus = enum success, error, timeout, pending
-	TestResult = Table[string, tuple[status: ResultStatus, transferred: float, time: float]]
+	TestResult = tuple[url: string, status: ResultStatus, transferred: int, response_time: float, process_time: float]
 	Stats = tuple[successes: int, errors: int, timeouts: int, transferred: float, time: float]
 
 var
-	results: TestResult
 	summary: Stats
 	outputs: seq[string]
 
 let
 	iterations = 10
 	single_source = false
-	response_timeout = 3000
+	response_timeout = 5000
 	verbose = true
 
 
@@ -37,47 +36,54 @@ proc prep_urls(): seq[string] =
 		echo &"Error: {e.name}"
 
 
-proc get_http_resp(client: AsyncHttpClient, url: string): Future[string] {.async.} =
+proc get_http_resp(client: AsyncHttpClient, test_item: TestResult): Future[TestResult] {.async.} =
+	let start_time = epochTime()
+	var test_item = test_item
 	try:
-		result = await client.getContent(&"http://www.{url}")
-		if results[url].status != timeout:
-			results[url].status = success
-		results[url].transferred = result.len.float
-		return ""
+		let result = await client.getContent(&"http://www.{test_item.url}")
+		test_item.status = success
+		test_item.transferred = result.len
+		test_item.process_time = epochTime() - start_time
+		if verbose:
+			echo &"{test_item.url}: - Transferred: {test_item.transferred} Bytes. Processing Time: {test_item.process_time}s."
 	except Exception as e:
-		results[url].status = error
-		return &"Error: {e.name}"
+		test_item.status = error
+		test_item.process_time = epochTime() - start_time
+		echo &"Error: {test_item.url} - {e.name}. Processing Time: {test_item.process_time}s."
+
+	return test_item
 
 
-proc spawn_requests(urls: seq[string]) {.async.} =
-	var futures: seq[Future[string]]
-	for url in urls:
+proc spawn_requests(test_items: seq[TestResult]): Future[seq[TestResult]] {.async.} =
+	var futures: seq[Future[TestResult]]
+	for test_item in test_items:
 		var client = newAsyncHttpClient()
-		futures.add client.get_http_resp(url)
+		futures.add client.get_http_resp(test_item)
 
-	for i in 0..<urls.len:
-		let url = urls[i]
+	var results = test_items
+	for i in 0..<results.len:
 		let start_time = epochTime()
 
 		if await futures[i].withTimeout(response_timeout):
-			let output = await futures[i]
-			results[url].time = epochTime() - start_time
-			if verbose:
-				echo &"{url}: - Transferred: {results[url].transferred} Bytes. Time: {results[url].time:.4f}s. {output}"
+			var result = await futures[i]
+			result.response_time = epochTime() - start_time
+			results[i] = result
 
 		else:
-			results[url].time = epochTime() - start_time
-			results[urls[i]].status = timeout
+			results[i].response_time = epochTime() - start_time
+			results[i].status = timeout
 			if verbose:
-				echo &"Timeout: {urls[i]} Time: {results[url].time:.4f}s"
+				echo &"Timeout: {results[i].url} Timeout After: {results[i].response_time:.4f}s"
+	
+	return results
 
-proc eval(): Stats =
+proc eval(results: seq[TestResult]): Stats =
 	var stats: Stats
 
-	for key, val in results:
-		stats.transferred += val.transferred
-		summary.transferred += val.transferred
-		case val.status:
+	for res in results:
+		stats.transferred += res.transferred.float
+		summary.transferred += res.transferred.float
+		case res.status:
 			of success:
 				stats.successes += 1
 				summary.successes += 1
@@ -96,19 +102,21 @@ proc eval(): Stats =
 
 proc main() =
 	let urls = prep_urls()
+	# prepare test items
+	var test_items: seq[TestResult]
+	for url in urls: 
+		test_items.add((url: url, status: pending, transferred: 0, response_time: 0.0, process_time: 0.0))
+
 	echo "Starting requests..."
 
 	for i in 1..iterations:
 		echo &"Run: {i}/{iterations}"
 
-		for url in urls:
-			results[url] = (status: pending, transferred: 0.0, time: 0.0)
-
 		let start_time = epochTime()
-		waitFor spawn_requests(urls)
+		let results = waitFor spawn_requests(test_items)
 		let end_time = epochTime()
 
-		var stats = eval()
+		var stats = eval(results)
 		stats.time = end_time - start_time
 		summary.time += stats.time
 
