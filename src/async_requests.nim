@@ -62,18 +62,12 @@ proc spawn_requests(test_items: seq[TestResult]): Future[seq[TestResult]] {.asyn
 
 	var results = test_items
 	for i in 0..<results.len:
-		let start_time = epochTime()
 
 		if await futures[i].withTimeout(response_timeout):
 			var result = await futures[i]
-			result.response_time = epochTime() - start_time
 			results[i] = result
-
 		else:
-			results[i].response_time = epochTime() - start_time
 			results[i].status = timeout
-			if verbose:
-				echo &"Timeout: {results[i].url} No Response After: {results[i].response_time:.4f}s"
 	
 	return results
 
