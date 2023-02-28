@@ -12,8 +12,7 @@ let
 type
 	Stats = tuple[successes: int, errors: int, timeouts: int, transferred: float, time: float]
 	ResultStatus = enum success, error, timeout, pending
-	TestResult = tuple[url: string, status: ResultStatus, transferred: int, response_time: float,
-			process_time: float]
+	TestResult = tuple[url: string, status: ResultStatus, transferred: int, time: float]
 
 var
 	summary: Stats
@@ -42,12 +41,12 @@ proc get_http_resp(client: AsyncHttpClient, test_item: TestResult): Future[TestR
 		let result = await client.getContent(&"http://www.{test_item.url}")
 		test_result.status = success
 		test_result.transferred = result.len
-		test_result.process_time = epochTime() - start_time
+		test_result.time = epochTime() - start_time
 		if verbose:
 			echo &"{test_result.url}: - Transferred: {test_result.transferred} Bytes. Time: {test_result.process_time:.2f}s."
 	except Exception as e:
 		test_result.status = error
-		test_result.process_time = epochTime() - start_time
+		test_result.time = epochTime() - start_time
 		if verbose:
 			echo &"Error: {test_result.url} - {e.name}. Time: {test_result.process_time:.2f}s."
 
@@ -97,8 +96,7 @@ proc eval(results: seq[TestResult]): Stats =
 proc main() =
 	let urls = prep_urls()
 	# prepare test items
-	let test_items = collect newSeq: (for url in urls: (url: url, status: pending, transferred: 0,
-			response_time: 0.0, process_time: 0.0))
+	let test_items: seq[TestResult] = collect newSeq: (for url in urls: (url: url, status: pending, transferred: 0, time: 0.0))
 
 	echo "Starting requests..."
 
