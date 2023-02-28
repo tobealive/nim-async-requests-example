@@ -45,11 +45,11 @@ proc get_http_resp(client: AsyncHttpClient, test_item: TestResult): Future[TestR
 		test_item.transferred = result.len
 		test_item.process_time = epochTime() - start_time
 		if verbose:
-			echo &"{test_item.url}: - Transferred: {test_item.transferred} Bytes. Processing Time: {test_item.process_time}s."
+			echo &"{test_item.url}: - Transferred: {test_item.transferred} Bytes. Processing Time After Response: {test_item.process_time}s."
 	except Exception as e:
 		test_item.status = error
 		test_item.process_time = epochTime() - start_time
-		echo &"Error: {test_item.url} - {e.name}. Processing Time: {test_item.process_time}s."
+		echo &"Error: {test_item.url} - {e.name}. Processing Time After Response: {test_item.process_time}s."
 
 	return test_item
 
@@ -73,7 +73,7 @@ proc spawn_requests(test_items: seq[TestResult]): Future[seq[TestResult]] {.asyn
 			results[i].response_time = epochTime() - start_time
 			results[i].status = timeout
 			if verbose:
-				echo &"Timeout: {results[i].url} Timeout After: {results[i].response_time:.4f}s"
+				echo &"Timeout: {results[i].url} No Response After: {results[i].response_time:.4f}s"
 	
 	return results
 
@@ -120,7 +120,12 @@ proc main() =
 		stats.time = end_time - start_time
 		summary.time += stats.time
 
-		let output = &"{i}: Time: {stats.time:.2f}s. Sent: {stats.successes + stats.errors + stats.timeouts}. Successful: {stats.successes}. Errors: {stats.errors}. Timeouts: {stats.timeouts}. Transferred {stats.transferred:.2f} MB ({stats.transferred/stats.time:.2f} MB/s)."
+		let output = (&"{i}: Time: {stats.time:.2f}s. " &
+							&"Sent: {stats.successes + stats.errors + stats.timeouts}. " &
+							&"Successful: {stats.successes}. " &
+							&"Errors: {stats.errors}. " &
+							&"Timeouts: {stats.timeouts}. " &
+							&"Transferred {stats.transferred:.2f} MB ({stats.transferred/stats.time:.2f} MB/s).") 
 		outputs.add(output)
 		
 		if verbose:
@@ -136,10 +141,13 @@ proc main() =
 
 	summary.transferred = summary.transferred/(1024 * 1024)
 
-	echo &"""{seperator}
-Runs: {iterations}. Average Time: {summary.time / float(outputs.len):.2f}s. Total Errors: {summary.errors}. Total Timeouts: {summary.timeouts}. Transferred: {summary.transferred:.2f} MB ({summary.transferred/summary.time:.2f} MB/s).
-{seperator}
-"""
+	echo (&"{seperator}\n" &
+				&"Runs: {iterations}. " &
+				&"Average Time: {summary.time / float(outputs.len):.2f}s. " &
+				&"Total Errors: {summary.errors}. " &
+				&"Total Timeouts: {summary.timeouts}. " &
+				&"Transferred: {summary.transferred:.2f} MB ({summary.transferred/summary.time:.2f} MB/s)." &
+				&"\n{seperator}")
 
 
 main()
