@@ -1,24 +1,23 @@
 #? replace(sub = "\t", by = "  ")
 import asyncdispatch, httpclient, strformat, times, strutils, sequtils, sugar
 
-const
+let
 	url_source = "https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/3db61fe72e1ce6854faa025298bf4cdfd2b2f250/100-popular-urls.txt"
 	seperator = "-".repeat(80)
-
-type 
-	ResultStatus = enum success, error, timeout, pending
-	TestResult = tuple[url: string, status: ResultStatus, transferred: int, response_time: float, process_time: float]
-	Stats = tuple[successes: int, errors: int, timeouts: int, transferred: float, time: float]
-
-var
-	summary: Stats
-	outputs: seq[string]
-
-let
 	iterations = 10
 	single_source = false
 	response_timeout = 5000
 	verbose = true
+
+type
+	Stats = tuple[successes: int, errors: int, timeouts: int, transferred: float, time: float]
+	ResultStatus = enum success, error, timeout, pending
+	TestResult = tuple[url: string, status: ResultStatus, transferred: int, response_time: float,
+			process_time: float]
+
+var
+	summary: Stats
+	outputs: seq[string]
 
 
 proc prep_urls(): seq[string] =
@@ -36,7 +35,7 @@ proc prep_urls(): seq[string] =
 
 proc get_http_resp(client: AsyncHttpClient, test_item: TestResult): Future[TestResult] {.async.} =
 	var test_result = test_item
-	# This tracks the time to process, not the time until response. 
+	# this tracks the time to process, not the time until response
 	let start_time = epochTime()
 
 	try:
@@ -69,7 +68,7 @@ proc spawn_requests(test_items: seq[TestResult]): Future[seq[TestResult]] {.asyn
 			results[i] = result
 		else:
 			results[i].status = timeout
-	
+
 	return results
 
 proc eval(results: seq[TestResult]): Stats =
@@ -88,17 +87,18 @@ proc eval(results: seq[TestResult]): Stats =
 			of timeout:
 				stats.timeouts += 1
 				summary.timeouts += 1
-			else: 
+			else:
 				continue
-			
+
 	stats.transferred = stats.transferred.float/(1024 * 1024)
-			
+
 	return stats
 
 proc main() =
 	let urls = prep_urls()
 	# prepare test items
-	let test_items = collect newSeq: (for url in urls: (url: url, status: pending, transferred: 0, response_time: 0.0, process_time: 0.0))
+	let test_items = collect newSeq: (for url in urls: (url: url, status: pending, transferred: 0,
+			response_time: 0.0, process_time: 0.0))
 
 	echo "Starting requests..."
 
@@ -118,9 +118,9 @@ proc main() =
 							&"Successful: {stats.successes}. " &
 							&"Errors: {stats.errors}. " &
 							&"Timeouts: {stats.timeouts}. " &
-							&"Transferred {stats.transferred:.2f} MB ({stats.transferred/stats.time:.2f} MB/s).") 
+							&"Transferred {stats.transferred:.2f} MB ({stats.transferred/stats.time:.2f} MB/s).")
 		outputs.add(output)
-		
+
 		if verbose:
 			echo &"{seperator}\n{output}\n"
 
