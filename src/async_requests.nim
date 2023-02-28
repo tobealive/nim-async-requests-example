@@ -1,5 +1,5 @@
 #? replace(sub = "\t", by = "  ")
-import asyncdispatch, httpclient, strformat, times, strutils, sequtils
+import asyncdispatch, httpclient, strformat, times, strutils, sequtils, sugar
 
 const
 	url_source = "https://gist.githubusercontent.com/tobealive/b2c6e348dac6b3f0ffa150639ad94211/raw/3db61fe72e1ce6854faa025298bf4cdfd2b2f250/100-popular-urls.txt"
@@ -23,9 +23,7 @@ let
 
 proc prep_urls(): seq[string] =
 	if single_source:
-		var urls: seq[string]
-		for i in 0..<100:
-			urls.add(&"google.com/search?q={i}")
+		let urls = collect newSeq: (for i in 1..100: (&"google.com/search?q={i}"))
 		return urls
 	try:
 		var urls = newHttpClient().getContent(url_source).splitLines.deduplicate()
@@ -47,12 +45,12 @@ proc get_http_resp(client: AsyncHttpClient, test_item: TestResult): Future[TestR
 		test_result.transferred = result.len
 		test_result.process_time = epochTime() - start_time
 		if verbose:
-			echo &"{test_result.url}: - Transferred: {test_result.transferred} Bytes. Time: {test_result.process_time}s."
+			echo &"{test_result.url}: - Transferred: {test_result.transferred} Bytes. Time: {test_result.process_time:.2f}s."
 	except Exception as e:
 		test_result.status = error
 		test_result.process_time = epochTime() - start_time
 		if verbose:
-			echo &"Error: {test_result.url} - {e.name}. Time: {test_result.process_time}s."
+			echo &"Error: {test_result.url} - {e.name}. Time: {test_result.process_time:.2f}s."
 
 	return test_result
 
@@ -100,9 +98,7 @@ proc eval(results: seq[TestResult]): Stats =
 proc main() =
 	let urls = prep_urls()
 	# prepare test items
-	var test_items: seq[TestResult]
-	for url in urls: 
-		test_items.add((url: url, status: pending, transferred: 0, response_time: 0.0, process_time: 0.0))
+	let test_items = collect newSeq: (for url in urls: (url: url, status: pending, transferred: 0, response_time: 0.0, process_time: 0.0))
 
 	echo "Starting requests..."
 
