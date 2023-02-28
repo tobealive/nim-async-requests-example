@@ -37,21 +37,24 @@ proc prep_urls(): seq[string] =
 
 
 proc get_http_resp(client: AsyncHttpClient, test_item: TestResult): Future[TestResult] {.async.} =
+	var test_result = test_item
+	# This tracks the time to process, not the time until response. 
 	let start_time = epochTime()
-	var test_item = test_item
+
 	try:
 		let result = await client.getContent(&"http://www.{test_item.url}")
-		test_item.status = success
-		test_item.transferred = result.len
-		test_item.process_time = epochTime() - start_time
+		test_result.status = success
+		test_result.transferred = result.len
+		test_result.process_time = epochTime() - start_time
 		if verbose:
-			echo &"{test_item.url}: - Transferred: {test_item.transferred} Bytes. Processing Time After Response: {test_item.process_time}s."
+			echo &"{test_result.url}: - Transferred: {test_result.transferred} Bytes. Time: {test_result.process_time}s."
 	except Exception as e:
-		test_item.status = error
-		test_item.process_time = epochTime() - start_time
-		echo &"Error: {test_item.url} - {e.name}. Processing Time After Response: {test_item.process_time}s."
+		test_result.status = error
+		test_result.process_time = epochTime() - start_time
+		if verbose:
+			echo &"Error: {test_result.url} - {e.name}. Time: {test_result.process_time}s."
 
-	return test_item
+	return test_result
 
 
 proc spawn_requests(test_items: seq[TestResult]): Future[seq[TestResult]] {.async.} =
