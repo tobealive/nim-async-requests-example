@@ -6,7 +6,7 @@ let
 	seperator = "-".repeat(80)
 	iterations = 10
 	single_source = false
-	response_timeout = 5000
+	response_timeout = 10000
 	verbose = true
 
 type
@@ -32,43 +32,35 @@ proc prep_urls(): seq[string] =
 		echo &"Error: {e.name}"
 
 
-proc get_http_resp(client: AsyncHttpClient, test_item: TestResult): Future[TestResult] {.async.} =
-	var test_result = test_item
-	# this tracks the time to process, not the time until response
+proc get_http_resp(client: AsyncHttpClient, url: string): Future[TestResult] {.async.} =
+	var result: TestResult = (url: url, status: pending, transferred: 0, time: 0.0)
 	let start_time = epochTime()
 
 	try:
-		let result = await client.getContent(&"http://www.{test_item.url}")
-		test_result.status = success
-		test_result.transferred = result.len
-		test_result.time = epochTime() - start_time
-		if verbose:
-			echo &"{test_result.url}: - Transferred: {test_result.transferred} Bytes. Time: {test_result.process_time:.2f}s."
-	except Exception as e:
-		test_result.status = error
-		test_result.time = epochTime() - start_time
-		if verbose:
-			echo &"Error: {test_result.url} - {e.name}. Time: {test_result.process_time:.2f}s."
-
-	return test_result
-
-
-proc spawn_requests(test_items: seq[TestResult]): Future[seq[TestResult]] {.async.} =
-	var futures: seq[Future[TestResult]]
-	for test_item in test_items:
-		var client = newAsyncHttpClient()
-		futures.add client.get_http_resp(test_item)
-
-	var results = test_items
-	for i in 0..<results.len:
-
-		if await futures[i].withTimeout(response_timeout):
-			var result = await futures[i]
-			results[i] = result
+		if await client.get(&"http://www.{url}").withTimeout(response_timeout):
+			let resp = await client.getContent(&"http://www.{url}")
+			result.status = success
+			result.transferred = resp.len
+			result.time = epochTime() - start_time
+			if verbose:
+				echo &"{result.url} — Transferred: {result.transferred} Bytes. Time: {result.time:.2f}s."
 		else:
-			results[i].status = timeout
+			result.status = timeout
+			if verbose:
+				echo &"TIMEOUT: {result.url}"
+	except Exception as e:
+		result.status = error
+		result.time = epochTime() - start_time
+		if verbose:
+			echo &"ERROR: {result.url} — {e.name}. Time: {result.time:.2f}s."
 
-	return results
+	return result
+
+
+proc spawn_requests(urls: seq[string]): Future[seq[TestResult]] {.async.} =
+	let futures: seq[Future[TestResult]] = collect newSeq: (for url in urls: newAsyncHttpClient().get_http_resp(url))
+	return waitFor all(futures)
+
 
 proc eval(results: seq[TestResult]): Stats =
 	var stats: Stats
@@ -93,18 +85,16 @@ proc eval(results: seq[TestResult]): Stats =
 
 	return stats
 
+
 proc main() =
 	let urls = prep_urls()
-	# prepare test items
-	let test_items: seq[TestResult] = collect newSeq: (for url in urls: (url: url, status: pending, transferred: 0, time: 0.0))
-
 	echo "Starting requests..."
 
 	for i in 1..iterations:
 		echo &"Run: {i}/{iterations}"
 
 		let start_time = epochTime()
-		let results = waitFor spawn_requests(test_items)
+		let results = waitFor spawn_requests(urls)
 		let end_time = epochTime()
 
 		var stats = eval(results)
