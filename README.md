@@ -2,10 +2,7 @@
 
 Example in Nim that focuses on concurrent async requests.
 
-Supplementary information:
-
-- The requests were sent from Germany
-- Response errors do not increase the request time. On the contrary, they are handled immediately. Nevertheless, the response quota when using Nim should be improved.
+## Test runs
 
 ```
 -------------------------------------------------------------------------------
@@ -26,8 +23,8 @@ Runs: 10. Average Time: 11.05s. Total Errors: 105. Total Timeouts: 13. Transferr
 
 ---
 
-**Single source requests**: In this example `google.com/search?q=<0..<100>`<br>
-When using this nim example it may result in a `Too Many Requests` error if this amount of Google searches are performed repeatedly.
+Single source requests (for simplicity `google.com/search?q=<1..100>`)<br>
+It may result in a `Too Many Requests` error repeatedly performing this amount requests.
 
 ```
 Time: 2.90s. Sent: 100. Successful: 100. Errors: 0. Timeouts: 0. Transferred 10.85 MB (3.74 MB/s).
@@ -40,3 +37,4 @@ If you have thoughts on how to improve performance, please feel free to share th
 ## Equivalents in other languages
 
 - Python: https://github.com/tobealive/python-async-requests-example
+- Haskell: https://github.com/tobealive/haskell-async-requests-example
