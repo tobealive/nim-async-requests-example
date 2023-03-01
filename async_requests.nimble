@@ -11,3 +11,4 @@ bin           = @["async_requests"]
 # Dependencies
 
 requires "nim >= 1.6.10"
+requires "chronos"
