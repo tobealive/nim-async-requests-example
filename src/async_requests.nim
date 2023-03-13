@@ -21,19 +21,17 @@ var
 
 proc prep_urls(): seq[string] =
 	if single_source:
-		let urls = collect newSeq: (for i in 1..100: (&"google.com/search?q={i}"))
-		return urls
+		result = collect newSeq: (for i in 1..100: (&"google.com/search?q={i}"))
 	try:
-		var urls = newHttpClient().getContent(url_source).splitLines.deduplicate()
-		if urls.len > 100:
-			urls.setLen(100)
-		return urls
+		result = newHttpClient().getContent(url_source).splitLines.deduplicate()
+		if result.len > 100:
+			result.setLen(100)
 	except Exception as e:
 		echo &"Error: {e.name}"
 
 
 proc get_http_resp(url: string): Future[TestResult] {.async.} =
-	var result: TestResult = (url: url, status: pending, transferred: 0, time: 0.0)
+	result.url = url
 	let client = newAsyncHttpClient()
 	let start_time = epochTime()
 
@@ -59,36 +57,30 @@ proc get_http_resp(url: string): Future[TestResult] {.async.} =
 	finally:
 		client.close()
 
-	return result
-
 
 proc spawn_requests(urls: seq[string]): Future[seq[TestResult]] {.async.} =
 	let futures: seq[Future[TestResult]] = collect newSeq: (for url in urls: get_http_resp(url))
-	return waitFor all(futures)
+	result = waitFor all(futures)
 
 
 proc eval(results: seq[TestResult]): Stats =
-	var stats: Stats
-
 	for res in results:
-		stats.transferred += res.transferred.float
+		result.transferred += res.transferred.float
 		summary.transferred += res.transferred.float
 		case res.status:
 			of success:
-				stats.successes += 1
+				result.successes += 1
 				summary.successes += 1
 			of error:
-				stats.errors += 1
+				result.errors += 1
 				summary.errors += 1
 			of timeout:
-				stats.timeouts += 1
+				result.timeouts += 1
 				summary.timeouts += 1
 			else:
 				continue
 
-	stats.transferred = stats.transferred.float/(1024 * 1024)
-
-	return stats
+	result.transferred = result.transferred.float/(1024 * 1024)
 
 
 proc main() =
