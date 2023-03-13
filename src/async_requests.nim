@@ -32,33 +32,38 @@ proc prep_urls(): seq[string] =
 		echo &"Error: {e.name}"
 
 
-proc get_http_resp(client: AsyncHttpClient, url: string): Future[TestResult] {.async.} =
+proc get_http_resp(url: string): Future[TestResult] {.async.} =
 	var result: TestResult = (url: url, status: pending, transferred: 0, time: 0.0)
+	let client = newAsyncHttpClient()
 	let start_time = epochTime()
 
 	try:
-		if await client.get(&"http://www.{url}").withTimeout(response_timeout):
-			let resp = await client.getContent(&"http://www.{url}")
+		let request = client.get(&"http://www.{url}")
+		if await request.withTimeout(response_timeout):
+			let resp = await request
+			let body = await resp.body
 			result.status = success
-			result.transferred = resp.len
+			result.transferred = body.len
 			result.time = epochTime() - start_time
 			if verbose:
 				echo &"{result.url} — Transferred: {result.transferred} Bytes. Time: {result.time:.2f}s."
 		else:
 			result.status = timeout
 			if verbose:
-				echo &"TIMEOUT: {result.url}"
+				echo &"TIMEOUT: {url}"
 	except Exception as e:
 		result.status = error
 		result.time = epochTime() - start_time
 		if verbose:
 			echo &"ERROR: {result.url} — {e.name}. Time: {result.time:.2f}s."
+	finally:
+		client.close()
 
 	return result
 
 
 proc spawn_requests(urls: seq[string]): Future[seq[TestResult]] {.async.} =
-	let futures: seq[Future[TestResult]] = collect newSeq: (for url in urls: newAsyncHttpClient().get_http_resp(url))
+	let futures: seq[Future[TestResult]] = collect newSeq: (for url in urls: get_http_resp(url))
 	return waitFor all(futures)
 
 
