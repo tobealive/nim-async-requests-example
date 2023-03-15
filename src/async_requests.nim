@@ -21,7 +21,7 @@ var
 
 proc prep_urls(): seq[string] =
 	if single_source:
-		result = collect newSeq: (for i in 1..100: (&"google.com/search?q={i}"))
+		return collect newSeq: (for i in 1..100: (&"google.com/search?q={i}"))
 	try:
 		result = newHttpClient().getContent(url_source).splitLines.deduplicate()
 		if result.len > 100:
